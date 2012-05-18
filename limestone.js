@@ -106,6 +106,9 @@ exports.SphinxClient = function() {
     var _queue = [];
     var _persistent = false;
 
+    self.state = function(){
+        return server_conn.readyState;
+    };
 
     // Connect to Sphinx server
     self.connect = function() {
@@ -128,6 +131,9 @@ exports.SphinxClient = function() {
 
 
         server_conn = tcp.createConnection(port, host);
+
+        //server_conn.setKeepAlive(true);
+
 	    server_conn.on('error', function(x){
 		    console.log('Error: '+x);
 	        server_conn.end();
@@ -141,6 +147,18 @@ exports.SphinxClient = function() {
 			}
 		});
 
+        server_conn.on("end", function(x){
+            if (x) {
+                   console.log('connection end.');                   
+            }
+        });
+
+        server_conn.on("timeout", function(x){
+            if (x) {
+                   console.log('connection timeout.');                   
+            }
+        });
+
         // disable Nagle algorithm
         server_conn.setNoDelay(true);
         //server_conn.setEncoding('binary');
@@ -150,7 +168,7 @@ exports.SphinxClient = function() {
         //var promise = new process.Promise();
 
         server_conn.addListener('connect', function () {
-
+            // console.log('connected.'); 
             // console.log('Connected, sending protocol version... State is ' + server_conn.readyState);
             // Sending protocol version
             // console.log('Sending version number...');
@@ -229,6 +247,7 @@ exports.SphinxClient = function() {
     // console.log('Connecting to searchd...');
 
     self.query = function(query_raw, callback) {
+        //console.info(server_conn.readyState);
         var query = new Object();
 
 
@@ -255,16 +274,15 @@ exports.SphinxClient = function() {
 	    indexweights		: [],
 	    ranker				: Sphinx.rankingMode.PROXIMITY_BM25,
 	    maxquerytime		: 0,
-	    fieldweights				: {},
+	    fieldweights		: {},
 	    overrides 			: [],
 	    selectlist			: "*",
-            indexes				: '*',
-            comment				: '',
-            query				: "",
+        indexes				: '*',
+        comment				: '',
+        query				: "",
 	    error				: "", // per-reply fields (for single-query case)
 	    warning				: "",
 	    connerror			: false,
-	    
 	    reqs				: [],	// requests storage (for multi-query case)
 	    mbenc				: "",
 	    arrayresult			: true,
@@ -352,12 +370,12 @@ exports.SphinxClient = function() {
             request.push.int32(filter.exclude);
         }
 
-        request.push.int32(query_parameters.groupfunc);
-        request.push.lstring(query_parameters.groupby); // Groupby length
+        request.push.int32(query.groupfunc);
+        request.push.lstring(query.groupby); // Groupby length
 
         request.push.int32(query_parameters.maxmatches); // Maxmatches, default to 1000
 
-        request.push.lstring(query_parameters.groupsort); // Groupsort
+        request.push.lstring(query.groupsort); // Groupsort
 
         request.push.int32(query_parameters.cutoff); // Cutoff
         request.push.int32(query_parameters.retrycount); // Retrycount
@@ -385,7 +403,7 @@ exports.SphinxClient = function() {
 	    // per-field weights (preferred method)
         request.push.int32(Object.keys(query.fieldweights).length);
         for (var field_name in query.fieldweights) {
-	    request.push.lstring(field_name);
+            request.push.lstring(field_name);
             request.push.int32(query.fieldweights[field_name]);
         }
 
