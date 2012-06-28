@@ -106,7 +106,7 @@ exports.SphinxClient = function() {
     var _queue = [];
     var _persistent = false;
 
-    var self_name = 'limestone';
+    var self_name = '';
 
     self.state = function(){
         return server_conn.readyState;
@@ -125,7 +125,7 @@ exports.SphinxClient = function() {
 	var callback = args.pop();
 	var hostport = args.length ? args.shift() + '' : ':'+Sphinx.port;
 	var persistent =  _persistent = args.length ? args.shift() : false;
-    self_name = args.length ? self_name+'_'+args.shift() : self_name+'_noname';
+    self_name = args.length ? 'limestone_'+args.shift() : 'limestone_noname';
     console.info(self_name+' is creating.');
 
 
